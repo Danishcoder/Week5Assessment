@@ -1,6 +1,70 @@
+const dotenv = require("dotenv").config()
+const Sequelize = require("sequelize")
+
+const {CONNECTION_STRING} = process.env
+const sequelize = new Sequelize(CONNECTION_STRING, {
+    dialect: 'postgres',
+    dialectOptions: {
+        ssl: {
+            rejectUnauthorized: false
+        }
+    }
+  })
 
 
 module.exports = {
+    deleteCity: (req,res) => {
+        const id = req.params.id
+        
+
+        sequelize.query(`
+            DELETE FROM cities
+            WHERE city_id = ${id}
+            `)
+            .then(dbRes => res.status(200).send(dbRes[0]))
+    },
+    getCities: (req, res) => {
+        sequelize.query(`
+            SELECT city_id, cities.name AS city, rating, countries.country_id, countries.name AS country
+            FROM cities
+            JOIN countries
+            ON cities.country_id = countries.country_id
+            ORDER BY rating DESC;
+        `)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => {
+            console.log(err)
+            res.status(500).send()
+        })
+    },
+    createCity: (req, res) => {
+        const name = req.body.name
+        const rating = req.body.rating
+        const countryId = req.body.countryId
+
+        sequelize.query(`
+            INSERT INTO cities
+            (name, rating, country_id)
+            VALUES 
+            ('${name}', '${rating}', '${countryId}');
+        `)
+        .then(dbRes => res.status(200).send(dbRes[0]))
+        .catch(err => {
+            console.log(err)
+            res.status(500).send()
+        })
+        
+    },
+    getCountries: (req, res) => {
+        sequelize.query(`
+        SELECT * FROM countries;
+        `)
+            .then(dbRes => res.status(200).send(dbRes[0]))
+            .catch(err => {
+                console.log(err)
+                res.status(500).send()
+            })
+    },
     seed: (req, res) => {
         sequelize.query(`
             drop table if exists cities;
@@ -11,7 +75,12 @@ module.exports = {
                 name varchar
             );
 
-            *****YOUR CODE HERE*****
+            create table cities (
+                city_id serial primary key,
+                name varchar not null,
+                rating integer not null,
+                country_id integer not null references countries(country_id)
+            );
 
             insert into countries (name)
             values ('Afghanistan'),
